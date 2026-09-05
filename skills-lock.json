@@ -55,6 +55,12 @@
       "skillPath": "skills/flow-launcher-plugin-dev/SKILL.md",
       "computedHash": "fde077460e02ccfeff901e0b796017f4cc68923ca3aacd1c01de71a3fb32d928"
     },
+    "openspec-agy-delivery": {
+      "source": "HungNth/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/openspec-agy-delivery/SKILL.md",
+      "computedHash": "96437ca6b10af8037feb83e7b782df0500b9c2a1cce344a75bfdcf1a50c8cc67"
+    },
     "receiving-code-review": {
       "source": "obra/superpowers",
       "sourceType": "github",
