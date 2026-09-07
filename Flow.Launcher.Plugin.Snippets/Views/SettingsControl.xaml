@@ -16,11 +16,33 @@
                    Foreground="{DynamicResource Color04B}"
                    Margin="{DynamicResource SettingPanelItemTopBottomMargin}"
                    TextWrapping="Wrap"/>
-        <Button x:Name="ManageSnippetsButton"
-                Content="Manage Snippets"
-                HorizontalAlignment="Left"
-                Padding="16,6"
-                Margin="{DynamicResource SettingPanelItemTopBottomMargin}"
-                Click="ManageSnippetsButton_Click"/>
+        <!-- Action Groups -->
+        <StackPanel Orientation="Horizontal" Margin="{DynamicResource SettingPanelItemTopBottomMargin}">
+            <!-- Group 1: Manage Snippets -->
+            <Button x:Name="ManageSnippetsButton"
+                    Content="Manage Snippets"
+                    Padding="16,6"
+                    Click="ManageSnippetsButton_Click"/>
+
+            <!-- Visual Separation -->
+            <Border Width="1"
+                    Height="20"
+                    Margin="32,0,32,0"
+                    Background="{DynamicResource Color03B}"
+                    VerticalAlignment="Center"/>
+
+            <!-- Group 2: Backup / Restore (Export & Import) -->
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="ExportButton"
+                        Content="Export JSON"
+                        Padding="16,6"
+                        Margin="0,0,8,0"
+                        Click="ExportButton_Click"/>
+                <Button x:Name="ImportButton"
+                        Content="Import JSON"
+                        Padding="16,6"
+                        Click="ImportButton_Click"/>
+            </StackPanel>
+        </StackPanel>
     </StackPanel>
 </UserControl>
