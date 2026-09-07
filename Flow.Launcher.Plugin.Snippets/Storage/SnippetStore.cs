@@ -78,6 +78,101 @@ public class SnippetStore
         Load();
     }
 
+    public void Export(string destinationPath)
+    {
+        if (string.IsNullOrWhiteSpace(destinationPath))
+        {
+            throw new ArgumentException("Destination path cannot be null or whitespace.", nameof(destinationPath));
+        }
+
+        lock (_syncLock)
+        {
+            var destinationDir = Path.GetDirectoryName(destinationPath);
+            if (!string.IsNullOrEmpty(destinationDir))
+            {
+                Directory.CreateDirectory(destinationDir);
+            }
+
+            var tempPath = Path.Combine(
+                string.IsNullOrEmpty(destinationDir) ? SettingsDirectory : destinationDir,
+                $".export.{Guid.NewGuid():N}.tmp");
+
+            try
+            {
+                var doc = new SnippetDocument(CurrentVersion, Snippets);
+
+                using (var fs = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                {
+                    JsonSerializer.Serialize(fs, doc, JsonOptions);
+                    fs.Flush(true);
+                }
+
+                if (File.Exists(destinationPath))
+                {
+                    File.Delete(destinationPath);
+                }
+                File.Move(tempPath, destinationPath);
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    if (File.Exists(tempPath))
+                    {
+                        File.Delete(tempPath);
+                    }
+                }
+                catch
+                {
+                    // Best effort cleanup
+                }
+
+                throw new SnippetStorageException($"Failed to export snippets to '{destinationPath}': {ex.Message}", ex);
+            }
+        }
+    }
+
+    public void Import(string sourcePath)
+    {
+        if (string.IsNullOrWhiteSpace(sourcePath))
+        {
+            throw new ArgumentException("Source path cannot be null or whitespace.", nameof(sourcePath));
+        }
+
+        if (!File.Exists(sourcePath))
+        {
+            throw new FileNotFoundException($"Import file '{sourcePath}' was not found.", sourcePath);
+        }
+
+        lock (_syncLock)
+        {
+            List<Snippet> loadedSnippets;
+            try
+            {
+                using var stream = File.OpenRead(sourcePath);
+                using var doc = JsonDocument.Parse(stream);
+
+                var (valid, error, list) = ValidateAndParseDocument(doc.RootElement, sourcePath);
+                if (!valid || list == null)
+                {
+                    throw new SnippetStorageException($"Invalid snippet document in '{sourcePath}': {error}");
+                }
+
+                loadedSnippets = list;
+            }
+            catch (SnippetStorageException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new SnippetStorageException($"Failed to read or parse import file '{sourcePath}': {ex.Message}", ex);
+            }
+
+            SaveCandidateList(loadedSnippets);
+        }
+    }
+
     public void Add(Snippet snippet)
     {
         lock (_syncLock)
