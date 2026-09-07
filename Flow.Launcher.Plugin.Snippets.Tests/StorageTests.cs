@@ -185,4 +185,81 @@ public class StorageTests
         Assert.AreEqual("valid", store.Snippets[0].Key);
         Assert.AreEqual(malformedJson, File.ReadAllText(store.FilePath), "Corrupt file must remain untouched");
     }
+
+    [TestMethod]
+    public void Export_ValidLibrary_WritesSnippetDocumentJsonToDestinationPath()
+    {
+        var store = new SnippetStore(_tempDir);
+        store.Add(new Snippet("k1", "val1", 5));
+        store.Add(new Snippet("k2", "val2", 10));
+
+        var exportFile = Path.Combine(_tempDir, "export", "backup.json");
+        store.Export(exportFile);
+
+        Assert.IsTrue(File.Exists(exportFile));
+        var content = File.ReadAllText(exportFile);
+        StringAssert.Contains(content, "\"version\": 1");
+        StringAssert.Contains(content, "\"k1\"");
+        StringAssert.Contains(content, "\"val1\"");
+        StringAssert.Contains(content, "\"k2\"");
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(ArgumentException))]
+    public void Export_NullOrEmptyPath_ThrowsArgumentException()
+    {
+        var store = new SnippetStore(_tempDir);
+        store.Export("");
+    }
+
+    [TestMethod]
+    public void Import_ValidFile_ReplacesAllSnippetsAndCreatesBackup()
+    {
+        var store = new SnippetStore(_tempDir);
+        store.Add(new Snippet("oldKey", "oldValue", 1));
+
+        var importFile = Path.Combine(_tempDir, "external.json");
+        var importJson = """
+{
+  "version": 1,
+  "snippets": [
+    { "key": "new1", "value": "val1", "score": 10 },
+    { "key": "new2", "value": "val2", "score": 20 }
+  ]
+}
+""";
+        File.WriteAllText(importFile, importJson);
+
+        store.Import(importFile);
+
+        Assert.AreEqual(2, store.Snippets.Count);
+        Assert.AreEqual("new2", store.Snippets[0].Key, "Snippets should be ordered by score desc");
+        Assert.AreEqual("new1", store.Snippets[1].Key);
+        Assert.IsTrue(File.Exists(store.BackupFilePath), "Backup file must be created on replace");
+        StringAssert.Contains(File.ReadAllText(store.BackupFilePath), "oldKey");
+    }
+
+    [TestMethod]
+    public void Import_MalformedJson_ThrowsSnippetStorageExceptionAndPreservesCurrentSnippets()
+    {
+        var store = new SnippetStore(_tempDir);
+        store.Add(new Snippet("keepMe", "keepValue", 5));
+
+        var importFile = Path.Combine(_tempDir, "broken.json");
+        File.WriteAllText(importFile, "{ invalid json ");
+
+        Assert.ThrowsException<SnippetStorageException>(() => store.Import(importFile));
+
+        Assert.AreEqual(1, store.Snippets.Count);
+        Assert.AreEqual("keepMe", store.Snippets[0].Key);
+    }
+
+    [TestMethod]
+    public void Import_NonExistentFile_ThrowsFileNotFoundException()
+    {
+        var store = new SnippetStore(_tempDir);
+        var missingFile = Path.Combine(_tempDir, "does-not-exist.json");
+
+        Assert.ThrowsException<FileNotFoundException>(() => store.Import(missingFile));
+    }
 }

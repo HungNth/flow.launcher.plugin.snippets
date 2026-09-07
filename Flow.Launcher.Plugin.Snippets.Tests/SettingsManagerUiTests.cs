@@ -618,6 +618,91 @@ public class SettingsManagerUiTests
             var control = new SettingsControl(store);
             Assert.IsNotNull(control);
             Assert.IsNotNull(control.ManageSnippetsButton);
+            Assert.IsNotNull(control.ExportButton);
+            Assert.IsNotNull(control.ImportButton);
+        });
+    }
+
+    [TestMethod]
+    public void SettingsControl_ExportSnippets_ValidDestination_CallsStoreAndNotifiesApi()
+    {
+        RunInSta(() =>
+        {
+            var store = new SnippetStore(_tempDir);
+            store.Add(new Snippet("test-k", "test-v", 10));
+
+            var (proxyApi, proxyHandler) = TestPublicApiProxy.Create();
+            var control = new SettingsControl(store, proxyApi);
+
+            var exportPath = Path.Combine(_tempDir, "ui-export.json");
+            var result = control.ExportSnippets(exportPath);
+
+            Assert.IsTrue(result);
+            Assert.IsTrue(File.Exists(exportPath));
+            Assert.AreEqual("Snippets Exported", proxyHandler.LastSuccessTitle);
+        });
+    }
+
+    [TestMethod]
+    public void SettingsControl_ImportSnippets_ValidFile_CallsStoreAndNotifiesApi()
+    {
+        RunInSta(() =>
+        {
+            var store = new SnippetStore(_tempDir);
+            var (proxyApi, proxyHandler) = TestPublicApiProxy.Create();
+            var control = new SettingsControl(store, proxyApi);
+
+            var importPath = Path.Combine(_tempDir, "ui-import.json");
+            File.WriteAllText(importPath, """
+{
+  "version": 1,
+  "snippets": [
+    { "key": "imported-key", "value": "imported-val", "score": 42 }
+  ]
+}
+""");
+
+            var result = control.ImportSnippets(importPath);
+
+            Assert.IsTrue(result);
+            Assert.AreEqual(1, store.Snippets.Count);
+            Assert.AreEqual("imported-key", store.Snippets[0].Key);
+            Assert.AreEqual("Snippets Imported", proxyHandler.LastSuccessTitle);
+        });
+    }
+
+    [TestMethod]
+    public void SettingsControl_ImportSnippets_InvalidFile_ReportsErrorAndReturnsFalse()
+    {
+        RunInSta(() =>
+        {
+            var store = new SnippetStore(_tempDir);
+            var (proxyApi, proxyHandler) = TestPublicApiProxy.Create();
+            var control = new SettingsControl(store, proxyApi);
+
+            var result = control.ImportSnippets(Path.Combine(_tempDir, "nonexistent.json"));
+
+            Assert.IsFalse(result);
+            Assert.AreEqual("Import Failed", proxyHandler.LastErrorTitle);
+        });
+    }
+
+    [TestMethod]
+    public void SettingsControl_FileDialogFilter_SyntaxIsValid()
+    {
+        RunInSta(() =>
+        {
+            var saveDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*"
+            };
+            Assert.AreEqual("JSON files (*.json)|*.json|All files (*.*)|*.*", saveDialog.Filter);
+
+            var openDialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*"
+            };
+            Assert.AreEqual("JSON files (*.json)|*.json|All files (*.*)|*.*", openDialog.Filter);
         });
     }
 
@@ -715,6 +800,10 @@ public class TestPublicApiProxy : DispatchProxy
 {
     public int SubscribeCount { get; set; }
     public int UnsubscribeCount { get; set; }
+    public string? LastSuccessTitle { get; set; }
+    public string? LastSuccessMessage { get; set; }
+    public string? LastErrorTitle { get; set; }
+    public string? LastErrorMessage { get; set; }
 
     public static (IPublicAPI Api, TestPublicApiProxy Handler) Create()
     {
@@ -738,6 +827,18 @@ public class TestPublicApiProxy : DispatchProxy
         if (targetMethod?.Name == "IsApplicationDarkTheme")
         {
             return false;
+        }
+        if (targetMethod?.Name == "ShowMsg")
+        {
+            LastSuccessTitle = args?[0]?.ToString();
+            LastSuccessMessage = args?[1]?.ToString();
+            return null;
+        }
+        if (targetMethod?.Name == "ShowMsgError")
+        {
+            LastErrorTitle = args?[0]?.ToString();
+            LastErrorMessage = args?[1]?.ToString();
+            return null;
         }
         return null;
     }
