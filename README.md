@@ -51,43 +51,58 @@ All snippets are stored in a human-readable JSON format.
 
 ### JSON Schema
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `version` | Integer | Schema version number (currently `1`). |
-| `snippets` | Array | List of snippet objects. |
-| `snippets[].key` | String | Unique identifier used for searching in Flow Launcher. Case-insensitive. |
-| `snippets[].value` | String | Full text inserted to the clipboard. Supports multiline content and special characters. |
-| `snippets[].score` | Integer | Priority ranking score for search ordering (e.g. 0–100). Higher score ranks higher. |
+| Field              | Type    | Description                                                                             |
+| ------------------ | ------- | --------------------------------------------------------------------------------------- |
+| `version`          | Integer | Schema version number (currently `1`).                                                  |
+| `snippets`         | Array   | List of snippet objects.                                                                |
+| `snippets[].key`   | String  | Unique identifier used for searching in Flow Launcher. Case-insensitive.                |
+| `snippets[].value` | String  | Full text inserted to the clipboard. Supports multiline content and special characters. |
+| `snippets[].score` | Integer | Priority ranking score for search ordering (e.g. 0–100). Higher score ranks higher.     |
 
 ### Example `snippets.json`
 
 ```json
 {
-  "version": 1,
-  "snippets": [
-    {
-      "key": "git-cm",
-      "value": "git commit -m \"$message$\"",
-      "score": 100
-    },
-    {
-      "key": "pr-template",
-      "value": "## Summary\n\n- Description of changes\n\n## Verification\n- [x] Tested locally",
-      "score": 80
-    },
-    {
-      "key": "docker-compose",
-      "value": "version: '3.8'\nservices:\n  app:\n    image: node:20\n    ports:\n      - '3000:3000'",
-      "score": 50
-    },
-    {
-      "key": "email-sig",
-      "value": "Best regards,\nJohn Doe\nSoftware Engineer",
-      "score": 30
-    }
-  ]
+    "version": 1,
+    "snippets": [
+        {
+            "key": "git-cm",
+            "value": "git commit -m \"$message$\"",
+            "score": 100
+        },
+        {
+            "key": "pr-template",
+            "value": "## Summary\n\n- Description of changes\n\n## Verification\n- [x] Tested locally",
+            "score": 80
+        },
+        {
+            "key": "docker-compose",
+            "value": "version: '3.8'\nservices:\n  app:\n    image: node:20\n    ports:\n      - '3000:3000'",
+            "score": 50
+        },
+        {
+            "key": "email-sig",
+            "value": "Best regards,\nJohn Doe\nSoftware Engineer",
+            "score": 30
+        }
+    ]
 }
 ```
+
+## Development
+
+Clone to your local machine. The project targets .NET 9.0 and uses WPF for the UI.
+
+```bash
+git clone https://github.com/HungNth/flow.launcher.plugin.snippets
+```
+
+```bash
+cd flow.launcher.plugin.snippets
+dotnet publish Flow.Launcher.Plugin.Snippets -c Release -r win-x64 --no-self-contained
+```
+
+Results are in `Flow.Launcher.Plugin.Snippets/bin/Release`.
 
 ## Screenshot Automation
 
