@@ -1,12 +1,12 @@
 {
-  "ID": "322E19D6797443EEABABEA1116D111F9",
-  "ActionKeyword": "sp",
-  "Name": "Snippets",
-  "Description": "Search and manage snippets in JSON",
-  "Author": "Flow Launcher Plugin Contributor",
-  "Version": "1.0.0",
-  "Language": "csharp",
-  "Website": "",
-  "IcoPath": "Images\\Snippets.png",
-  "ExecuteFileName": "Flow.Launcher.Plugin.Snippets.dll"
+    "ID": "322E19D6797443EEABABEA1116D111F9",
+    "ActionKeyword": "sp",
+    "Name": "Snippets",
+    "Description": "Search and manage snippets in JSON",
+    "Author": "HungNth",
+    "Version": "1.0.0",
+    "Language": "csharp",
+    "Website": "https://github.com/HungNth/flow.launcher.plugin.snippets",
+    "IcoPath": "Images\\Snippets.png",
+    "ExecuteFileName": "Flow.Launcher.Plugin.Snippets.dll"
 }
