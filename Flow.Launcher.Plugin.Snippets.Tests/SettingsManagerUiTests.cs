@@ -794,6 +794,52 @@ public class SettingsManagerUiTests
             Assert.AreEqual(1, store.Snippets.Count);
         });
     }
+
+    [TestMethod]
+    public void SettingsControl_InitializesFromPassedSettings_AndMutatesSharedInstance()
+    {
+        RunInSta(() =>
+        {
+            var store = new SnippetStore(_tempDir);
+            store.Load();
+            var (api, handler) = TestPublicApiProxy.Create();
+            var settings = new PluginSettings
+            {
+                AutoPasteEnabled = true,
+                PasteDelayMs = 150
+            };
+
+            var control = new SettingsControl(store, settings, api);
+            Assert.IsTrue(control.AutoPasteCheckBox.IsChecked);
+            Assert.AreEqual("150", control.PasteDelayTextBox.Text);
+
+            // Mutate checkbox
+            control.AutoPasteCheckBox.IsChecked = false;
+            control.AutoPasteCheckBox_Click(control.AutoPasteCheckBox, new RoutedEventArgs());
+            Assert.IsFalse(settings.AutoPasteEnabled);
+            Assert.AreEqual(1, handler.SaveSettingsCount);
+
+            // Mutate delay text box to valid value
+            control.PasteDelayTextBox.Text = "250";
+            control.PasteDelayTextBox_LostFocus(control.PasteDelayTextBox, new RoutedEventArgs());
+            Assert.AreEqual(250, settings.PasteDelayMs);
+            Assert.AreEqual("250", control.PasteDelayTextBox.Text);
+            Assert.AreEqual(2, handler.SaveSettingsCount);
+
+            // Mutate delay text box to clamped value (> 1000)
+            control.PasteDelayTextBox.Text = "5000";
+            control.PasteDelayTextBox_LostFocus(control.PasteDelayTextBox, new RoutedEventArgs());
+            Assert.AreEqual(PluginSettings.MaxPasteDelayMs, settings.PasteDelayMs);
+            Assert.AreEqual(PluginSettings.MaxPasteDelayMs.ToString(), control.PasteDelayTextBox.Text);
+            Assert.AreEqual(3, handler.SaveSettingsCount);
+
+            // Mutate delay text box to invalid string - retains current clamped value
+            control.PasteDelayTextBox.Text = "invalid";
+            control.PasteDelayTextBox_LostFocus(control.PasteDelayTextBox, new RoutedEventArgs());
+            Assert.AreEqual(PluginSettings.MaxPasteDelayMs.ToString(), control.PasteDelayTextBox.Text);
+            Assert.AreEqual(4, handler.SaveSettingsCount);
+        });
+    }
 }
 
 public class TestPublicApiProxy : DispatchProxy
@@ -804,6 +850,7 @@ public class TestPublicApiProxy : DispatchProxy
     public string? LastSuccessMessage { get; set; }
     public string? LastErrorTitle { get; set; }
     public string? LastErrorMessage { get; set; }
+    public int SaveSettingsCount { get; set; }
 
     public static (IPublicAPI Api, TestPublicApiProxy Handler) Create()
     {
@@ -838,6 +885,11 @@ public class TestPublicApiProxy : DispatchProxy
         {
             LastErrorTitle = args?[0]?.ToString();
             LastErrorMessage = args?[1]?.ToString();
+            return null;
+        }
+        if (targetMethod?.Name == "SaveSettingJsonStorage")
+        {
+            SaveSettingsCount++;
             return null;
         }
         return null;

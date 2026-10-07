@@ -3,20 +3,74 @@ namespace Flow.Launcher.Plugin.Snippets.Views;
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Flow.Launcher.Plugin;
+using Flow.Launcher.Plugin.Snippets.Models;
 using Flow.Launcher.Plugin.Snippets.Storage;
-
 public partial class SettingsControl : UserControl
 {
     private readonly SnippetStore _store;
+    private readonly PluginSettings _settings;
     private readonly IPublicAPI? _api;
     private SnippetManagerWindow? _window;
 
-    public SettingsControl(SnippetStore store, IPublicAPI? api = null)
+    public SettingsControl(SnippetStore store, PluginSettings? settings = null, IPublicAPI? api = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _settings = settings ?? new PluginSettings();
         _api = api;
         InitializeComponent();
+        InitializeSettingsState();
+    }
+
+    public SettingsControl(SnippetStore store, IPublicAPI? api) : this(store, null, api)
+    {
+    }
+
+
+    private void InitializeSettingsState()
+    {
+        AutoPasteCheckBox.IsChecked = _settings.AutoPasteEnabled;
+        PasteDelayTextBox.Text = _settings.PasteDelayMs.ToString();
+        DataObject.AddPastingHandler(PasteDelayTextBox, PasteDelayTextBox_Pasting);
+    }
+
+    public void AutoPasteCheckBox_Click(object sender, RoutedEventArgs e)
+    {
+        _settings.AutoPasteEnabled = AutoPasteCheckBox.IsChecked ?? true;
+        _api?.SaveSettingJsonStorage<PluginSettings>();
+    }
+
+    public void PasteDelayTextBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (int.TryParse(PasteDelayTextBox.Text.Trim(), out var parsedValue))
+        {
+            _settings.PasteDelayMs = parsedValue;
+        }
+
+        PasteDelayTextBox.Text = _settings.PasteDelayMs.ToString();
+        _api?.SaveSettingJsonStorage<PluginSettings>();
+    }
+
+    public void PasteDelayTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+        e.Handled = !e.Text.All(char.IsAsciiDigit);
+    }
+
+    private void PasteDelayTextBox_Pasting(object sender, DataObjectPastingEventArgs e)
+    {
+        if (e.DataObject.GetDataPresent(DataFormats.Text))
+        {
+            var text = e.DataObject.GetData(DataFormats.Text) as string;
+            if (string.IsNullOrEmpty(text) || !text.All(char.IsAsciiDigit))
+            {
+                e.CancelCommand();
+            }
+        }
+        else
+        {
+            e.CancelCommand();
+        }
     }
 
     public void ManageSnippetsButton_Click(object sender, RoutedEventArgs e)

@@ -8,14 +8,18 @@ using Flow.Launcher.Plugin;
 using Flow.Launcher.Plugin.Snippets.Services;
 using Flow.Launcher.Plugin.Snippets.Storage;
 
-public class Main : IPlugin, IReloadable, ISettingProvider
+public class Main : IPlugin, IReloadable, ISettingProvider, IContextMenu
 {
     public const string PluginName = "Snippets";
 
     private PluginInitContext _context = null!;
     private SnippetStore _store = null!;
+    private Models.PluginSettings _settings = null!;
+    private PasteOrchestrator _orchestrator = null!;
 
     public SnippetStore Store => _store;
+    public Models.PluginSettings Settings => _settings;
+    public PasteOrchestrator Orchestrator => _orchestrator;
 
     public void Init(PluginInitContext context)
     {
@@ -27,6 +31,8 @@ public class Main : IPlugin, IReloadable, ISettingProvider
 
         _store = new SnippetStore(settingsDir);
         _store.Load();
+        _settings = _context.API.LoadSettingJsonStorage<Models.PluginSettings>() ?? new Models.PluginSettings();
+        _orchestrator = new PasteOrchestrator(_context.API);
 
         if (_store.LastError != null)
         {
@@ -40,7 +46,7 @@ public class Main : IPlugin, IReloadable, ISettingProvider
             query,
             _store.Snippets,
             (q, target) => _context.API.FuzzySearch(q, target),
-            CopySnippetToClipboard,
+            OnSelectSnippet,
             _store.LastError);
     }
 
@@ -62,7 +68,32 @@ public class Main : IPlugin, IReloadable, ISettingProvider
 
     public Control CreateSettingPanel()
     {
-        return new Views.SettingsControl(_store, _context?.API);
+        return new Views.SettingsControl(_store, _settings, _context?.API);
+    }
+
+    public List<Result> LoadContextMenus(Result selectedResult)
+    {
+        var snippetValue = (selectedResult.ContextData as Models.Snippet)?.Value ?? selectedResult.CopyText;
+        if (string.IsNullOrEmpty(snippetValue))
+        {
+            return new List<Result>();
+        }
+
+        return new List<Result>
+        {
+            new()
+            {
+                Title = "Copy to clipboard",
+                SubTitle = "Copy snippet value without pasting",
+                IcoPath = SnippetQueryService.IconPath,
+                Action = _ => CopySnippetToClipboard(snippetValue)
+            }
+        };
+    }
+
+    private bool OnSelectSnippet(string value)
+    {
+        return _orchestrator.ExecuteSelection(value, _settings);
     }
 
     private bool CopySnippetToClipboard(string value)

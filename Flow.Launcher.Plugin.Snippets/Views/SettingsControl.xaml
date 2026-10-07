@@ -16,6 +16,31 @@
                    Foreground="{DynamicResource Color04B}"
                    Margin="{DynamicResource SettingPanelItemTopBottomMargin}"
                    TextWrapping="Wrap"/>
+        <!-- Auto-Paste Configuration -->
+        <StackPanel Margin="{DynamicResource SettingPanelItemTopBottomMargin}">
+            <CheckBox x:Name="AutoPasteCheckBox"
+                      Content="Enable Auto-Paste on Enter"
+                      FontSize="13"
+                      VerticalAlignment="Center"
+                      Click="AutoPasteCheckBox_Click"/>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <TextBlock Text="Paste Delay (ms):"
+                           FontSize="13"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource Color04B}"
+                           Margin="0,0,10,0"/>
+                <TextBox x:Name="PasteDelayTextBox"
+                         Width="80"
+                         VerticalAlignment="Center"
+                         LostFocus="PasteDelayTextBox_LostFocus"
+                         PreviewTextInput="PasteDelayTextBox_PreviewTextInput"/>
+                <TextBlock Text="(10 - 1000 ms)"
+                           FontSize="12"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource Color04B}"
+                           Margin="8,0,0,0"/>
+            </StackPanel>
+        </StackPanel>
         <!-- Action Groups -->
         <StackPanel Orientation="Horizontal" Margin="{DynamicResource SettingPanelItemTopBottomMargin}">
             <!-- Group 1: Manage Snippets -->
